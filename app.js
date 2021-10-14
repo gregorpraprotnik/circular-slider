@@ -62,8 +62,9 @@ export default class CircularSlider {
         sliderContainer.appendChild(svg);
 
         sliderContainer.addEventListener("mouseup", () => { this.dragging = false; });
-
-        sliderContainer.addEventListener("mousemove", e => this.handleMouseDrag(e));
+        sliderContainer.addEventListener("touchend", () => { this.dragging = false });
+        sliderContainer.addEventListener("mousemove", e => this.handleDrag(e));
+        sliderContainer.addEventListener("touchmove", e => this.handleDrag(e));
     }
 
     drawCircle(circleClass) {
@@ -85,6 +86,7 @@ export default class CircularSlider {
         if (circleClass === CLICKABLE_CIRCLE_CLASS) {
             // add click event listener when creating clickable circle
             circle.addEventListener("click", e => this.handleCircleClick(e));
+            circle.addEventListener("touchstart", e => this.handleCircleClick(e));
         }
 
         return circle;
@@ -99,13 +101,8 @@ export default class CircularSlider {
         sliderHandle.setAttributeNS(null, "r", HANDLE_SIZE);
         sliderHandle.setAttributeNS(null, "id", SLIDER_HANDLE_CLASS + "-" + this.radius);
 
-        sliderHandle.addEventListener("mousedown", e => {
-            this.startDrag(e.target);
-        });
-
-        sliderHandle.addEventListener("touchstart", (e) => {
-            this.startDrag(e.target);
-        });
+        sliderHandle.addEventListener("mousedown", e => { this.startDrag(e.target); });
+        sliderHandle.addEventListener("touchstart", (e) => { this.startDrag(e.target); });
 
         return sliderHandle;
     }
@@ -115,13 +112,19 @@ export default class CircularSlider {
         this.activeHandle = target;
     }
 
-    handleMouseDrag(e) {
+    handleDrag(e) {
         e.preventDefault();
 
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
+        // we need to differentiate between touches and mouse clicks
+        let event = e;
+        if (e.type === "touchmove") {
+            event = e.touches[0];
+        }
 
-        this.handlePosition = this.findCircleIntersection(mouseX, mouseY);
+        const x = event.clientX;
+        const y = event.clientY;
+        
+        this.handlePosition = this.findCircleIntersection(x, y);
 
         if (this.dragging) {
             this.activeHandle.setAttributeNS(null, "cx", this.handlePosition.x);
@@ -136,7 +139,15 @@ export default class CircularSlider {
 
         this.activeHandle = document.getElementById(SLIDER_HANDLE_CLASS + "-" + this.radius);
 
-        this.handlePosition = this.findCircleIntersection(e.clientX, e.clientY);
+        let event = e;
+        if (e.type === "touchstart") {
+            event = e.touches[0];
+        }
+
+        const x = event.clientX;
+        const y = event.clientY;
+
+        this.handlePosition = this.findCircleIntersection(x, y);
 
         this.activeHandle.setAttributeNS(null, "cx", this.handlePosition.x);
         this.activeHandle.setAttributeNS(null, "cy", this.handlePosition.y);
