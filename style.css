@@ -1,0 +1,28 @@
+.slider-container {
+    height: 500;
+    width: 500;
+    background-color: #eee;
+}
+.background-circle {
+    stroke-width: 15;
+    stroke-dasharray: 5, 2;
+    fill: none;
+    stroke: #d5d5d5;
+    rotate: -90;
+}
+.foreground-circle {
+    stroke-width: 15;
+    fill: none;
+    opacity: 80%;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+.clickable-circle {
+    stroke-width: 15;
+    fill: none;
+    stroke: transparent;
+}
+.slider-handle {
+    stroke: grey;
+    fill: #fff;
+}
