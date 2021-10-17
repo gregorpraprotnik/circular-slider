@@ -1,10 +1,12 @@
 const SVG_NAMESPACE_URI = "http://www.w3.org/2000/svg";
+const LEGEND_ID = "legend";
 const SVG_ID = "sliderSVG";
 const BACKGROUND_CIRCLE_CLASS = "background-circle";
 const FOREGROUND_CIRCLE_CLASS = "foreground-circle";
 const CLICKABLE_CIRCLE_CLASS = "clickable-circle";
 const SLIDER_HANDLE_CLASS = "slider-handle";
 const HANDLE_SIZE = 8;
+const CURRENCY_SYMBOL = "$";
 
 export default class CircularSlider {
     defaultOptions = {
@@ -13,7 +15,8 @@ export default class CircularSlider {
         min: 0,
         max: 100,
         step: 1,
-        radius: 37
+        radius: 37,
+        name: "Example"
     };
 
     constructor(options) {
@@ -25,6 +28,7 @@ export default class CircularSlider {
         this.max = this.options.max;
         this.step = this.options.step;
         this.radius = this.options.radius;
+        this.name = this.options.name;
 
         this.svgWidth = 500;
         this.svgHeight = 500;
@@ -38,19 +42,30 @@ export default class CircularSlider {
         this.foregroundCircleId = FOREGROUND_CIRCLE_CLASS + "-" + this.radius;
         this.clickableCircleId = CLICKABLE_CIRCLE_CLASS + "-" + this.radius;
 
+        this.legendValueId = "value-" + this.radius;
+
         this.createSlider();
     }
 
     createSlider() {
         const sliderContainer = document.getElementById(this.container);
 
+        let legend = document.getElementById(LEGEND_ID);
         let svg = document.getElementById(SVG_ID);
 
+        // create the legend if it doesn't exist
+        if (legend === null) {
+            legend = document.createElementNS(LEGEND_ID, "ul");
+            legend.setAttributeNS(null, "id", LEGEND_ID);
+        }
+
         // create the SVG if it doesn't exist
-        if (svg == null) {
+        if (svg === null) {
             svg = document.createElementNS(SVG_NAMESPACE_URI, "svg");
             svg.setAttributeNS(null, "id", SVG_ID);
         }
+
+        legend.appendChild(this.addLegendListEntry());
 
         svg.setAttributeNS(null, "width", this.svgWidth);
         svg.setAttributeNS(null, "height", this.svgHeight);
@@ -59,12 +74,42 @@ export default class CircularSlider {
         svg.appendChild(this.drawCircle(CLICKABLE_CIRCLE_CLASS));
         svg.appendChild(this.drawSliderHandle());
 
+        sliderContainer.appendChild(legend);
         sliderContainer.appendChild(svg);
 
         sliderContainer.addEventListener("mouseup", () => { this.dragging = false; });
         sliderContainer.addEventListener("touchend", () => { this.dragging = false });
         sliderContainer.addEventListener("mousemove", e => this.handleDrag(e));
         sliderContainer.addEventListener("touchmove", e => this.handleDrag(e));
+    }
+
+    addLegendListEntry() {
+        const entry = document.createElement("li");
+
+        const entryValue = document.createElement("span");
+        entryValue.setAttribute("id", this.legendValueId);
+        entryValue.setAttribute("class", "legend-value");
+        entryValue.textContent = "$" + this.min;
+
+        const entryColor = document.createElement("span");
+        entryColor.setAttribute("class", "legend-color");
+        entryColor.style.backgroundColor = this.color;
+
+        const entryName = document.createElement("span");
+        entryName.textContent = this.name;
+
+        entry.appendChild(entryValue);
+        entry.appendChild(entryColor);
+        entry.appendChild(entryName);
+
+        return entry;
+    }
+
+    updateLegendValue() {
+        const percentage = this.calculateArcDegrees() / 360 * 100;
+        const value = (percentage * (this.max - this.min) / 100) + this.min;
+
+        document.getElementById(this.legendValueId).textContent = CURRENCY_SYMBOL + this.moveToClosestStep(value);
     }
 
     drawCircle(circleClass) {
@@ -116,21 +161,24 @@ export default class CircularSlider {
         e.preventDefault();
 
         // we need to differentiate between touches and mouse clicks
-        let event = e;
-        if (e.type === "touchmove") {
-            event = e.touches[0];
-        }
+        let offsetX = e.offsetX;
+        let offsetY = e.offsetY;
 
-        const x = event.clientX;
-        const y = event.clientY;
+        if (e.type === "touchmove") {
+            const sliderContainerRect = document.getElementById(this.container).getBoundingClientRect();
+
+            offsetX = e.touches[0].pageX - sliderContainerRect.left;
+            offsetY = e.touches[0].pageY - sliderContainerRect.top;
+        }
         
-        this.handlePosition = this.findCircleIntersection(x, y);
+        this.handlePosition = this.findCircleIntersection(offsetX, offsetY);
 
         if (this.dragging) {
             this.activeHandle.setAttributeNS(null, "cx", this.handlePosition.x);
             this.activeHandle.setAttributeNS(null, "cy", this.handlePosition.y);
 
             this.drawColorOverlay();
+            this.updateLegendValue();
         }
     }
 
@@ -139,19 +187,22 @@ export default class CircularSlider {
 
         this.activeHandle = document.getElementById(SLIDER_HANDLE_CLASS + "-" + this.radius);
 
-        let event = e;
-        if (e.type === "touchstart") {
-            event = e.touches[0];
+        let offsetX = e.offsetX;
+        let offsetY = e.offsetY;
+
+        if (e.type === "touchstart") {           
+            const rect = e.target.getBoundingClientRect();
+
+            offsetX = e.targetTouches[0].clientX - rect.x;
+            offsetY = e.targetTouches[0].clientY - rect.y;
         }
 
-        const x = event.clientX;
-        const y = event.clientY;
-
-        this.handlePosition = this.findCircleIntersection(x, y);
+        this.handlePosition = this.findCircleIntersection(offsetX, offsetY);
 
         this.activeHandle.setAttributeNS(null, "cx", this.handlePosition.x);
         this.activeHandle.setAttributeNS(null, "cy", this.handlePosition.y);
 
+        this.updateLegendValue();
         this.drawColorOverlay();
     }
 
@@ -174,12 +225,22 @@ export default class CircularSlider {
         colorOverlay.setAttributeNS(null, "stroke-dashoffset", this.circumference - this.calculateArcLength());
     }
 
-    calculateArcLength() {
+    moveToClosestStep(value) {
+        const low = value - value % this.step;
+        const high = low + this.step;
+
+        return value - low < high - value ? low : high;
+    }
+
+    calculateArcDegrees() {
         const deltaX = this.handlePosition.x - this.centerX;
         const deltaY = this.handlePosition.y - this.centerY;
 
         // degrees from the top
-        const degrees = (Math.atan2(deltaY, deltaX) * 180 / Math.PI + 450) % 360;
-        return this.circumference / 360 * degrees;
+        return (Math.atan2(deltaY, deltaX) * 180 / Math.PI + 450) % 360;
+    }
+
+    calculateArcLength() {
+        return this.circumference / 360 * this.calculateArcDegrees();
     }
 }
