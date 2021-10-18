@@ -1,15 +1,17 @@
 #slider-container {
-    display: flex;
-    flex-direction: row;
+    display: inline-block;
     background-color: #eee;
 }
-ul {
-    list-style-type: none;
+table {
+    float: left;
 }
-.legend-value {
+td.legend-value {
+    width: 100px;
     font-size: 32px;
     font-weight: bold;
-    margin-right: 20px;
+}
+p {
+    display: inline;
 }
 .legend-color {
     display: inline-block;

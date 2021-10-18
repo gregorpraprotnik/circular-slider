@@ -20,6 +20,8 @@ export default class CircularSlider {
     };
 
     constructor(options) {
+        this.validateOptions(options);
+
         this.options = { ...this.defaultOptions, ...options };
 
         this.container = this.options.container;
@@ -55,7 +57,7 @@ export default class CircularSlider {
 
         // create the legend if it doesn't exist
         if (legend === null) {
-            legend = document.createElementNS(LEGEND_ID, "ul");
+            legend = document.createElementNS(LEGEND_ID, "table");
             legend.setAttributeNS(null, "id", LEGEND_ID);
         }
 
@@ -84,23 +86,27 @@ export default class CircularSlider {
     }
 
     addLegendListEntry() {
-        const entry = document.createElement("li");
+        const entry = document.createElement("tr");
 
-        const entryValue = document.createElement("span");
+        const entryValue = document.createElement("td");
         entryValue.setAttribute("id", this.legendValueId);
         entryValue.setAttribute("class", "legend-value");
         entryValue.textContent = "$" + this.min;
+
+        const entryColorAndName = document.createElement("td");
 
         const entryColor = document.createElement("span");
         entryColor.setAttribute("class", "legend-color");
         entryColor.style.backgroundColor = this.color;
 
-        const entryName = document.createElement("span");
+        const entryName = document.createElement("p");
         entryName.textContent = this.name;
 
         entry.appendChild(entryValue);
-        entry.appendChild(entryColor);
-        entry.appendChild(entryName);
+        entryColorAndName.appendChild(entryColor);
+        entryColorAndName.appendChild(entryName);
+        
+        entry.appendChild(entryColorAndName);
 
         return entry;
     }
@@ -242,5 +248,20 @@ export default class CircularSlider {
 
     calculateArcLength() {
         return this.circumference / 360 * this.calculateArcDegrees();
+    }
+
+    validateOptions(options) {
+        if (typeof options.container !== "string" || options.container === "") {
+            throw new Error("Container must be a valid string");
+        }
+        if (options.step <= 0) {
+            throw new Error("Step value must be greater than zero");
+        }
+        if (options.min > options.max) {
+            throw new Error("Min value must be less than max");
+        }
+        if (options.radius <= 0) {
+            throw new Error("Radius must be more than zero");
+        }
     }
 }
