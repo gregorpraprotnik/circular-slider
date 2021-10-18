@@ -165,10 +165,10 @@ export default class CircularSlider {
         let offsetY = e.offsetY;
 
         if (e.type === "touchmove") {
-            const sliderContainerRect = document.getElementById(this.container).getBoundingClientRect();
+            const svgContainerRect = document.getElementById(SVG_ID).getBoundingClientRect();
 
-            offsetX = e.touches[0].pageX - sliderContainerRect.left;
-            offsetY = e.touches[0].pageY - sliderContainerRect.top;
+            offsetX = e.touches[0].pageX - svgContainerRect.left;
+            offsetY = e.touches[0].pageY - svgContainerRect.top;
         }
         
         this.handlePosition = this.findCircleIntersection(offsetX, offsetY);
